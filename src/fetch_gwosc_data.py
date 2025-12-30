@@ -40,25 +40,6 @@ def fetch_gwosc_events():
         return {}
 
 
-def get_nested_value(d, *keys):
-    """
-    Safely get nested dictionary values.
-    
-    Args:
-        d: Dictionary to search
-        *keys: Sequence of keys to traverse
-    
-    Returns:
-        Value if found, None otherwise
-    """
-    for key in keys:
-        if isinstance(d, dict):
-            d = d.get(key)
-        else:
-            return None
-    return d
-
-
 def extract_event_parameters(events):
     """
     Extract relevant parameters from GWOSC events for visualization.
@@ -73,115 +54,68 @@ def extract_event_parameters(events):
     
     for event_name, event_data in events.items():
         
-        # Try multiple possible structures for parameters
+        # Extract parameters - values are direct numbers, no .median or .best
         params = event_data.get('parameters', {})
         
-        # Method 1: Direct mass values with 'best' or 'median'
-        m1_median = (
-            get_nested_value(params, 'mass_1_source', 'best') or
-            get_nested_value(params, 'mass_1_source', 'median') or
-            get_nested_value(params, 'mass1_source', 'best') or
-            get_nested_value(params, 'mass1_source', 'median') or
-            get_nested_value(params, 'm1_source', 'best') or
-            get_nested_value(params, 'm1_source', 'median')
-        )
+        # Get mass parameters (in solar masses)
+        # Parameters are directly numbers, not nested dicts
+        m1_source = params.get('mass_1_source')
+        m2_source = params.get('mass_2_source')
         
-        m2_median = (
-            get_nested_value(params, 'mass_2_source', 'best') or
-            get_nested_value(params, 'mass_2_source', 'median') or
-            get_nested_value(params, 'mass2_source', 'best') or
-            get_nested_value(params, 'mass2_source', 'median') or
-            get_nested_value(params, 'm2_source', 'best') or
-            get_nested_value(params, 'm2_source', 'median')
-        )
+        # If source masses not available, try detector frame masses
+        if m1_source is None:
+            m1_source = params.get('mass_1')
+        if m2_source is None:
+            m2_source = params.get('mass_2')
         
-        # Method 2: Try detector frame masses
-        if m1_median is None:
-            m1_median = (
-                get_nested_value(params, 'mass_1', 'best') or
-                get_nested_value(params, 'mass_1', 'median') or
-                get_nested_value(params, 'mass1', 'best') or
-                get_nested_value(params, 'mass1', 'median')
-            )
-        
-        if m2_median is None:
-            m2_median = (
-                get_nested_value(params, 'mass_2', 'best') or
-                get_nested_value(params, 'mass_2', 'median') or
-                get_nested_value(params, 'mass2', 'best') or
-                get_nested_value(params, 'mass2', 'median')
-            )
-        
-        # Method 3: Calculate from chirp mass and mass ratio
-        if m1_median is None or m2_median is None:
-            chirp_mass = (
-                get_nested_value(params, 'chirp_mass_source', 'best') or
-                get_nested_value(params, 'chirp_mass_source', 'median') or
-                get_nested_value(params, 'chirp_mass', 'best') or
-                get_nested_value(params, 'chirp_mass', 'median')
-            )
+        # Calculate from chirp mass and mass ratio if needed
+        if m1_source is None or m2_source is None:
+            chirp_mass = params.get('chirp_mass_source') or params.get('chirp_mass')
+            mass_ratio = params.get('mass_ratio')
             
-            mass_ratio = (
-                get_nested_value(params, 'mass_ratio', 'best') or
-                get_nested_value(params, 'mass_ratio', 'median') or
-                get_nested_value(params, 'q', 'best') or
-                get_nested_value(params, 'q', 'median')
-            )
-            
-            if chirp_mass and mass_ratio and mass_ratio > 0 and mass_ratio <= 1:
+            if chirp_mass and mass_ratio and 0 < mass_ratio <= 1:
                 # q = m2/m1, where q <= 1
                 # Mc = (m1*m2)^(3/5) / (m1+m2)^(1/5)
-                # Solve for m1 and m2
                 q = mass_ratio
-                m1_median = chirp_mass * ((1 + q) ** (1/5)) * (q ** (-3/5))
-                m2_median = m1_median * q
+                m1_source = chirp_mass * ((1 + q) ** (1/5)) * (q ** (-3/5))
+                m2_source = m1_source * q
         
         # Skip events without mass data
-        if m1_median is None or m2_median is None:
+        if m1_source is None or m2_source is None:
             continue
         
-        # Ensure m1 >= m2 (convention)
-        if m1_median < m2_median:
-            m1_median, m2_median = m2_median, m1_median
+        # Convert to float and ensure m1 >= m2
+        try:
+            m1 = float(m1_source)
+            m2 = float(m2_source)
+            
+            if m1 < m2:
+                m1, m2 = m2, m1
+        except (TypeError, ValueError):
+            continue
         
         # Get SNR (signal-to-noise ratio)
-        snr = (
-            get_nested_value(params, 'network_matched_filter_snr', 'best') or
-            get_nested_value(params, 'network_matched_filter_snr', 'median') or
-            get_nested_value(params, 'snr', 'best') or
-            get_nested_value(params, 'snr', 'median') or
-            10
-        )
+        snr = params.get('network_matched_filter_snr', 10.0)
+        try:
+            snr = float(snr)
+        except (TypeError, ValueError):
+            snr = 10.0
         
         # Get luminosity distance
-        luminosity_distance = (
-            get_nested_value(params, 'luminosity_distance', 'best') or
-            get_nested_value(params, 'luminosity_distance', 'median')
-        )
+        luminosity_distance = params.get('luminosity_distance')
         
         # Get final mass and spin
-        final_mass = (
-            get_nested_value(params, 'final_mass_source', 'best') or
-            get_nested_value(params, 'final_mass_source', 'median') or
-            get_nested_value(params, 'final_mass', 'best') or
-            get_nested_value(params, 'final_mass', 'median')
-        )
-        
-        final_spin = (
-            get_nested_value(params, 'final_spin', 'best') or
-            get_nested_value(params, 'final_spin', 'median') or
-            get_nested_value(params, 'chi_final', 'best') or
-            get_nested_value(params, 'chi_final', 'median')
-        )
+        final_mass = params.get('final_mass_source') or params.get('final_mass')
+        final_spin = params.get('final_spin')
         
         # Determine source type based on masses
         # Typical thresholds: NS < 3 M☉, BH > 3 M☉
         NS_THRESHOLD = 3.0
         
-        if m2_median < NS_THRESHOLD and m1_median < NS_THRESHOLD:
+        if m2 < NS_THRESHOLD and m1 < NS_THRESHOLD:
             source_type = "BNS"  # Binary Neutron Star
             color = "#3498db"  # Blue
-        elif m2_median < NS_THRESHOLD and m1_median > NS_THRESHOLD:
+        elif m2 < NS_THRESHOLD and m1 > NS_THRESHOLD:
             source_type = "NSBH"  # Neutron Star - Black Hole
             color = "#e67e22"  # Orange
         else:
@@ -204,12 +138,15 @@ def extract_event_parameters(events):
         # Get event version
         version = event_data.get('version', 'unknown')
         
+        # Get common name
+        common_name = params.get('commonName', event_name)
+        
         # Compile event info
         event_info = {
-            'name': event_name,
-            'm1': round(float(m1_median), 2),
-            'm2': round(float(m2_median), 2),
-            'snr': round(float(snr), 1),
+            'name': common_name,
+            'm1': round(m1, 2),
+            'm2': round(m2, 2),
+            'snr': round(snr, 1),
             'source_type': source_type,
             'color': color,
             'detection_date': detection_date,
