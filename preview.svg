@@ -1,0 +1,156 @@
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0e1a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d1117;stop-opacity:1" />
+    </linearGradient>
+    
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Main background -->
+  <rect width="1400" height="900" fill="url(#bgGradient)"/>
+  
+  <!-- Stars -->
+  <circle cx="100" cy="50" r="1" fill="white" opacity="0.6"/>
+  <circle cx="250" cy="80" r="1.5" fill="white" opacity="0.5"/>
+  <circle cx="400" cy="120" r="1" fill="white" opacity="0.7"/>
+  <circle cx="600" cy="90" r="1" fill="white" opacity="0.4"/>
+  <circle cx="800" cy="110" r="1.5" fill="white" opacity="0.6"/>
+  <circle cx="1000" cy="70" r="1" fill="white" opacity="0.5"/>
+  <circle cx="1200" cy="100" r="1" fill="white" opacity="0.7"/>
+  <circle cx="300" cy="600" r="1" fill="white" opacity="0.5"/>
+  <circle cx="900" cy="700" r="1.5" fill="white" opacity="0.6"/>
+  
+  <!-- Header -->
+  <g id="header">
+    <rect x="50" y="40" width="1300" height="120" fill="#131820" opacity="0.5" rx="8"/>
+    <text x="700" y="90" font-family="JetBrains Mono, monospace" font-size="36" font-weight="bold" 
+          fill="url(#titleGradient)" text-anchor="middle">
+      GRAVITATIONAL WAVE EVENTS
+    </text>
+    <text x="700" y="120" font-family="Source Sans 3, sans-serif" font-size="14" 
+          fill="#b4b8c4" text-anchor="middle" letter-spacing="2">
+      LIGO · VIRGO · KAGRA DETECTIONS
+    </text>
+    <text x="700" y="145" font-family="JetBrains Mono, monospace" font-size="11" 
+          fill="#7a8091" text-anchor="middle">
+      Last updated: 2024-12-30 10:00:00 UTC
+    </text>
+  </g>
+  
+  <linearGradient id="titleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#4a9eff;stop-opacity:1" />
+    <stop offset="100%" style="stop-color:#9b6bff;stop-opacity:1" />
+  </linearGradient>
+  
+  <!-- Stats Cards -->
+  <g id="stats">
+    <!-- Total Events -->
+    <rect x="50" y="190" width="310" height="100" fill="#131820" stroke="#2a3441" rx="12"/>
+    <rect x="50" y="190" width="310" height="3" fill="url(#titleGradient)" rx="1"/>
+    <text x="205" y="235" font-family="JetBrains Mono, monospace" font-size="32" 
+          font-weight="bold" fill="#4a9eff" text-anchor="middle">90</text>
+    <text x="205" y="265" font-family="Source Sans 3, sans-serif" font-size="13" 
+          fill="#b4b8c4" text-anchor="middle" letter-spacing="1.5">TOTAL EVENTS</text>
+    
+    <!-- BBH -->
+    <rect x="380" y="190" width="310" height="100" fill="#131820" stroke="#2a3441" rx="12"/>
+    <text x="535" y="235" font-family="JetBrains Mono, monospace" font-size="32" 
+          font-weight="bold" fill="#4a9eff" text-anchor="middle">78</text>
+    <text x="535" y="265" font-family="Source Sans 3, sans-serif" font-size="13" 
+          fill="#b4b8c4" text-anchor="middle" letter-spacing="1.5">BBH EVENTS</text>
+    
+    <!-- NSBH -->
+    <rect x="710" y="190" width="310" height="100" fill="#131820" stroke="#2a3441" rx="12"/>
+    <text x="865" y="235" font-family="JetBrains Mono, monospace" font-size="32" 
+          font-weight="bold" fill="#4a9eff" text-anchor="middle">9</text>
+    <text x="865" y="265" font-family="Source Sans 3, sans-serif" font-size="13" 
+          fill="#b4b8c4" text-anchor="middle" letter-spacing="1.5">NSBH EVENTS</text>
+    
+    <!-- BNS -->
+    <rect x="1040" y="190" width="310" height="100" fill="#131820" stroke="#2a3441" rx="12"/>
+    <text x="1195" y="235" font-family="JetBrains Mono, monospace" font-size="32" 
+          font-weight="bold" fill="#4a9eff" text-anchor="middle">3</text>
+    <text x="1195" y="265" font-family="Source Sans 3, sans-serif" font-size="13" 
+          fill="#b4b8c4" text-anchor="middle" letter-spacing="1.5">BNS EVENTS</text>
+  </g>
+  
+  <!-- Plot Container -->
+  <g id="plot-container">
+    <rect x="50" y="320" width="1300" height="530" fill="#131820" stroke="#2a3441" rx="16"/>
+    
+    <!-- Plot Title -->
+    <text x="80" y="355" font-family="JetBrains Mono, monospace" font-size="18" 
+          font-weight="600" fill="#e8eaf0">Source Mass Distribution</text>
+    <text x="80" y="378" font-family="Source Sans 3, sans-serif" font-size="12" 
+          fill="#b4b8c4">Interactive scatter plot: M₁ vs M₂ for all detected events</text>
+    
+    <!-- Plot Area (simplified scatter plot) -->
+    <rect x="90" y="400" width="1240" height="390" fill="#0a0e1a" rx="8"/>
+    
+    <!-- Axes -->
+    <line x1="140" y1="750" x2="1280" y2="750" stroke="#2a3441" stroke-width="2"/>
+    <line x1="140" y1="440" x2="140" y2="750" stroke="#2a3441" stroke-width="2"/>
+    
+    <!-- Axis labels -->
+    <text x="710" y="780" font-family="JetBrains Mono, monospace" font-size="13" 
+          fill="#b4b8c4" text-anchor="middle">Primary Mass M₁ (M☉)</text>
+    <text x="110" y="595" font-family="JetBrains Mono, monospace" font-size="13" 
+          fill="#b4b8c4" text-anchor="middle" transform="rotate(-90 110 595)">Secondary Mass M₂ (M☉)</text>
+    
+    <!-- Grid lines -->
+    <line x1="140" y1="650" x2="1280" y2="650" stroke="#2a3441" stroke-width="0.5" opacity="0.5"/>
+    <line x1="140" y1="550" x2="1280" y2="550" stroke="#2a3441" stroke-width="0.5" opacity="0.5"/>
+    <line x1="430" y1="440" x2="430" y2="750" stroke="#2a3441" stroke-width="0.5" opacity="0.5"/>
+    <line x1="720" y1="440" x2="720" y2="750" stroke="#2a3441" stroke-width="0.5" opacity="0.5"/>
+    <line x1="1000" y1="440" x2="1000" y2="750" stroke="#2a3441" stroke-width="0.5" opacity="0.5"/>
+    
+    <!-- Sample data points (BBH in purple) -->
+    <circle cx="800" cy="620" r="12" fill="#9b59b6" opacity="0.85" stroke="#9b59b6" filter="url(#glow)"/>
+    <circle cx="900" cy="580" r="15" fill="#9b59b6" opacity="0.85" stroke="#9b59b6" filter="url(#glow)"/>
+    <circle cx="1050" cy="560" r="10" fill="#9b59b6" opacity="0.85" stroke="#9b59b6" filter="url(#glow)"/>
+    <circle cx="650" cy="650" r="11" fill="#9b59b6" opacity="0.85" stroke="#9b59b6" filter="url(#glow)"/>
+    <circle cx="750" cy="600" r="13" fill="#9b59b6" opacity="0.85" stroke="#9b59b6" filter="url(#glow)"/>
+    <circle cx="550" cy="680" r="9" fill="#9b59b6" opacity="0.85" stroke="#9b59b6" filter="url(#glow)"/>
+    <circle cx="450" cy="700" r="8" fill="#9b59b6" opacity="0.85" stroke="#9b59b6" filter="url(#glow)"/>
+    <circle cx="1200" cy="520" r="14" fill="#9b59b6" opacity="0.85" stroke="#9b59b6" filter="url(#glow)"/>
+    
+    <!-- NSBH in orange -->
+    <circle cx="600" cy="720" r="10" fill="#e67e22" opacity="0.85" stroke="#e67e22" filter="url(#glow)"/>
+    <circle cx="480" cy="730" r="11" fill="#e67e22" opacity="0.85" stroke="#e67e22" filter="url(#glow)"/>
+    <circle cx="380" cy="735" r="9" fill="#e67e22" opacity="0.85" stroke="#e67e22" filter="url(#glow)"/>
+    
+    <!-- BNS in blue -->
+    <circle cx="250" cy="740" r="10" fill="#3498db" opacity="0.85" stroke="#3498db" filter="url(#glow)"/>
+    <circle cx="200" cy="738" r="11" fill="#3498db" opacity="0.85" stroke="#3498db" filter="url(#glow)"/>
+    
+    <!-- Legend -->
+    <rect x="80" y="800" width="1240" height="40" fill="#1a1f2e" stroke="#2a3441" rx="12"/>
+    
+    <circle cx="380" cy="820" r="6" fill="#9b59b6" filter="url(#glow)"/>
+    <text x="395" y="825" font-family="JetBrains Mono, monospace" font-size="12" 
+          font-weight="600" fill="#b4b8c4">BBH (Binary Black Hole)</text>
+    
+    <circle cx="680" cy="820" r="6" fill="#e67e22" filter="url(#glow)"/>
+    <text x="695" y="825" font-family="JetBrains Mono, monospace" font-size="12" 
+          font-weight="600" fill="#b4b8c4">NSBH (NS-BH)</text>
+    
+    <circle cx="940" cy="820" r="6" fill="#3498db" filter="url(#glow)"/>
+    <text x="955" y="825" font-family="JetBrains Mono, monospace" font-size="12" 
+          font-weight="600" fill="#b4b8c4">BNS (Binary NS)</text>
+  </g>
+  
+  <!-- Footer -->
+  <text x="700" y="880" font-family="Source Sans 3, sans-serif" font-size="11" 
+        fill="#7a8091" text-anchor="middle">
+    Data from GWOSC · Auto-updated daily via GitHub Actions
+  </text>
+</svg>
