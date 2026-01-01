@@ -1,3 +1,6 @@
+// Global data storage
+let allEventsData = null;
+
 // Load and visualize gravitational wave data
 async function loadData() {
     try {
@@ -6,8 +9,13 @@ async function loadData() {
         if (!response.ok) throw new Error('Failed to load data');
         
         const data = await response.json();
-        updateStats(data);
-        createPlot(data.events);
+        allEventsData = data; // Store globally
+        
+        // Populate catalog filter
+        populateCatalogFilter(data.events);
+        
+        // Display all events initially
+        displayEvents(data.events);
         
         // Update last update time
         const updateDate = new Date(data.updated);
@@ -28,13 +36,54 @@ async function loadData() {
     }
 }
 
-function updateStats(data) {
-    document.getElementById('totalEvents').textContent = data.event_count;
+function populateCatalogFilter(events) {
+    // Extract unique catalogs
+    const catalogs = [...new Set(events.map(e => e.version))].sort();
     
-    const bbhCount = data.events.filter(e => e.source_type === 'BBH').length;
-    const nsbhCount = data.events.filter(e => e.source_type === 'NSBH').length;
-    const bnsCount = data.events.filter(e => e.source_type === 'BNS').length;
+    const select = document.getElementById('catalogFilter');
     
+    // Add catalog options
+    catalogs.forEach(catalog => {
+        const option = document.createElement('option');
+        option.value = catalog;
+        option.textContent = catalog;
+        select.appendChild(option);
+    });
+    
+    // Add event listener
+    select.addEventListener('change', (e) => {
+        const selectedCatalog = e.target.value;
+        if (selectedCatalog === 'all') {
+            displayEvents(allEventsData.events);
+        } else {
+            const filtered = allEventsData.events.filter(event => event.version === selectedCatalog);
+            displayEvents(filtered);
+        }
+    });
+}
+
+function displayEvents(events) {
+    updateStats(events);
+    createPlot(events);
+    updateFilterInfo(events.length, allEventsData.event_count);
+}
+
+function updateFilterInfo(displayed, total) {
+    const info = document.getElementById('filterInfo');
+    if (displayed === total) {
+        info.textContent = `Showing all ${total} events`;
+    } else {
+        info.textContent = `Showing ${displayed} of ${total} events`;
+    }
+}
+
+function updateStats(events) {
+    const totalCount = events.length;
+    const bbhCount = events.filter(e => e.source_type === 'BBH').length;
+    const nsbhCount = events.filter(e => e.source_type === 'NSBH').length;
+    const bnsCount = events.filter(e => e.source_type === 'BNS').length;
+    
+    document.getElementById('totalEvents').textContent = totalCount;
     document.getElementById('bbhCount').textContent = bbhCount;
     document.getElementById('nsbhCount').textContent = nsbhCount;
     document.getElementById('bnsCount').textContent = bnsCount;
