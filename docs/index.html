@@ -26,15 +26,6 @@
                 Last updated: <span id="lastUpdate">Loading...</span>
             </div>
         </header>
-
-
-         <div class="filter-container">
-            <label for="catalogFilter" class="filter-label">Filter by Catalog:</label>
-            <select id="catalogFilter" class="filter-select">
-                <option value="all">All Events</option>
-            </select>
-            <span class="filter-info" id="filterInfo"></span>
-        </div>
         
         <div class="stats-container">
             <div class="stat-card">
@@ -86,6 +77,33 @@
                     <div class="legend-marker" style="background-color: #3498db;"></div>
                     <div class="legend-label">BNS (Binary Neutron Star)</div>
                 </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Population Analysis</h2>
+            <p>
+                Statistical distributions revealing the astrophysical properties of detected sources.
+            </p>
+        </div>
+        
+        <div class="additional-plots">
+            <div class="plot-card">
+                <h3>Mass Distributions</h3>
+                <p>Histogram of primary (M₁), secondary (M₂), and total masses</p>
+                <div id="massHistogram" class="small-plot"></div>
+            </div>
+            
+            <div class="plot-card">
+                <h3>Effective Spin Distribution</h3>
+                <p>χₑff measures the aligned component of binary spins</p>
+                <div id="spinPlot" class="small-plot"></div>
+            </div>
+            
+            <div class="plot-card">
+                <h3>Cumulative Detections</h3>
+                <p>Growth of GW detections over time</p>
+                <div id="timelinePlot" class="small-plot"></div>
             </div>
         </div>
         
