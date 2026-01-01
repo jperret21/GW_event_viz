@@ -1,190 +1,183 @@
+/**
+ * GW Event Visualization
+ * Robust, fail-soft version
+ * Author: Jules Perret
+ */
+
+// ===============================
 // Global data storage
+// ===============================
 let allEventsData = null;
 
-// Load and visualize gravitational wave data
+// ===============================
+// Init
+// ===============================
+document.addEventListener('DOMContentLoaded', () => {
+    loadData();
+});
+
+// ===============================
+// Data loading
+// ===============================
 async function loadData() {
     try {
         const response = await fetch('./data/gw_events.json');
-        
-        if (!response.ok) throw new Error('Failed to load data');
-        
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+
         const data = await response.json();
-        allEventsData = data; // Store globally
-        
-        // Populate catalog filter
+
+        if (!data || !Array.isArray(data.events)) {
+            throw new Error('Invalid data format');
+        }
+
+        allEventsData = data;
+
         populateCatalogFilter(data.events);
-        
-        // Display all events initially
         displayEvents(data.events);
-        
-        // Update last update time
-        const updateDate = new Date(data.updated);
-        document.getElementById('lastUpdate').textContent = 
-            updateDate.toLocaleString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'UTC'
-            }) + ' UTC';
-        
+        updateLastUpdate(data.updated);
+
     } catch (error) {
-        console.error('Error loading data:', error);
-        document.getElementById('massPlot').innerHTML = 
-            '<div class="loading">Failed to load data. Please refresh the page.</div>';
+        console.error('Error loading GW data:', error);
+        const plot = document.getElementById('massPlot');
+        if (plot) {
+            plot.innerHTML =
+                '<div class="loading">Failed to load data.</div>';
+        }
     }
 }
 
+// ===============================
+// Header info
+// ===============================
+function updateLastUpdate(updated) {
+    const el = document.getElementById('lastUpdate');
+    if (!el || !updated) return;
+
+    const date = new Date(updated);
+    el.textContent =
+        date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'UTC'
+        }) + ' UTC';
+}
+
+// ===============================
+// Catalog filter (optional)
+// ===============================
 function populateCatalogFilter(events) {
-    // Extract unique catalogs from catalog field
-    const catalogs = [...new Set(events.map(e => e.catalog))].filter(c => c && c !== 'unknown').sort();
-    
     const select = document.getElementById('catalogFilter');
-    
-    // Add catalog options
+    if (!select) return;
+
+    const catalogs = [...new Set(events.map(e => e.catalog))]
+        .filter(c => c && c !== 'unknown')
+        .sort();
+
     catalogs.forEach(catalog => {
         const option = document.createElement('option');
         option.value = catalog;
         option.textContent = catalog;
         select.appendChild(option);
     });
-    
-    // Add event listener
-    select.addEventListener('change', (e) => {
-        const selectedCatalog = e.target.value;
-        if (selectedCatalog === 'all') {
-            displayEvents(allEventsData.events);
-        } else {
-            const filtered = allEventsData.events.filter(event => event.catalog === selectedCatalog);
-            displayEvents(filtered);
-        }
+
+    select.addEventListener('change', e => {
+        const value = e.target.value;
+        displayEvents(
+            value === 'all'
+                ? allEventsData.events
+                : allEventsData.events.filter(ev => ev.catalog === value)
+        );
     });
 }
 
+// ===============================
+// Main display
+// ===============================
 function displayEvents(events) {
     updateStats(events);
+    updateFilterInfo(events.length, allEventsData.events.length);
+
     createPlot(events);
-    updateFilterInfo(events.length, allEventsData.event_count);
-    
-    // Create additional plots
     createMassHistograms(events);
     createSpinPlot(events);
     createTimelinePlot(events);
 }
 
+// ===============================
+// Stats cards
+// ===============================
+function updateStats(events) {
+    setText('totalEvents', events.length);
+    setText('bbhCount', events.filter(e => e.source_type === 'BBH').length);
+    setText('nsbhCount', events.filter(e => e.source_type === 'NSBH').length);
+    setText('bnsCount', events.filter(e => e.source_type === 'BNS').length);
+}
+
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+// ===============================
+// Filter info (optional)
+// ===============================
 function updateFilterInfo(displayed, total) {
     const info = document.getElementById('filterInfo');
-    if (displayed === total) {
-        info.textContent = `Showing all ${total} events`;
-    } else {
-        info.textContent = `Showing ${displayed} of ${total} events`;
-    }
+    if (!info) return;
+
+    info.textContent =
+        displayed === total
+            ? `Showing all ${total} events`
+            : `Showing ${displayed} of ${total} events`;
 }
 
-function updateStats(events) {
-    const totalCount = events.length;
-    const bbhCount = events.filter(e => e.source_type === 'BBH').length;
-    const nsbhCount = events.filter(e => e.source_type === 'NSBH').length;
-    const bnsCount = events.filter(e => e.source_type === 'BNS').length;
-    
-    document.getElementById('totalEvents').textContent = totalCount;
-    document.getElementById('bbhCount').textContent = bbhCount;
-    document.getElementById('nsbhCount').textContent = nsbhCount;
-    document.getElementById('bnsCount').textContent = bnsCount;
-}
-
+// ===============================
+// Main mass plot
+// ===============================
 function createPlot(events) {
-    // Group events by source type
-    const bbhEvents = events.filter(e => e.source_type === 'BBH');
-    const nsbhEvents = events.filter(e => e.source_type === 'NSBH');
-    const bnsEvents = events.filter(e => e.source_type === 'BNS');
-    
-    // Create traces for each source type
+    const container = document.getElementById('massPlot');
+    if (!container) return;
+
     const traces = [];
-    
-    if (bbhEvents.length > 0) {
-        traces.push(createTrace(bbhEvents, 'BBH (Binary Black Hole)', '#9b59b6'));
-    }
-    
-    if (nsbhEvents.length > 0) {
-        traces.push(createTrace(nsbhEvents, 'NSBH (NS-BH)', '#e67e22'));
-    }
-    
-    if (bnsEvents.length > 0) {
-        traces.push(createTrace(bnsEvents, 'BNS (Binary NS)', '#3498db'));
-    }
-    
-    // Layout configuration - clean academic style
+
+    const groups = {
+        BBH: { label: 'BBH (Binary Black Hole)', color: '#9b59b6' },
+        NSBH: { label: 'NSBH (NS-BH)', color: '#e67e22' },
+        BNS: { label: 'BNS (Binary NS)', color: '#3498db' }
+    };
+
+    Object.keys(groups).forEach(type => {
+        const subset = events.filter(e => e.source_type === type);
+        if (subset.length > 0) {
+            traces.push(createTrace(subset, groups[type].label, groups[type].color));
+        }
+    });
+
     const layout = {
-        xaxis: {
-            title: {
-                text: 'Primary Mass M₁ (M☉)',
-                font: { 
-                    family: 'Arial, sans-serif',
-                    size: 14,
-                    color: '#333'
-                }
-            },
-            gridcolor: '#e0e0e0',
-            tickfont: { color: '#666' },
-            showline: true,
-            linecolor: '#ccc',
-            zeroline: false
-        },
-        yaxis: {
-            title: {
-                text: 'Secondary Mass M₂ (M☉)',
-                font: { 
-                    family: 'Arial, sans-serif',
-                    size: 14,
-                    color: '#333'
-                }
-            },
-            gridcolor: '#e0e0e0',
-            tickfont: { color: '#666' },
-            showline: true,
-            linecolor: '#ccc',
-            zeroline: false
-        },
+        xaxis: { title: 'Primary Mass M₁ (M☉)', gridcolor: '#e0e0e0' },
+        yaxis: { title: 'Secondary Mass M₂ (M☉)', gridcolor: '#e0e0e0' },
         plot_bgcolor: '#ffffff',
         paper_bgcolor: '#ffffff',
         hovermode: 'closest',
-        showlegend: true,
+        margin: { l: 60, r: 30, t: 30, b: 60 },
         legend: {
-            font: { 
-                family: 'Arial, sans-serif',
-                color: '#333'
-            },
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
-            bordercolor: '#ccc',
-            borderwidth: 1,
             x: 0.02,
             y: 0.98,
-            xanchor: 'left',
-            yanchor: 'top'
-        },
-        margin: { l: 60, r: 30, t: 30, b: 60 },
-        autosize: true
-    };
-    
-    // Configuration
-    const config = {
-        responsive: true,
-        displayModeBar: true,
-        displaylogo: false,
-        modeBarButtonsToRemove: ['lasso2d', 'select2d'],
-        toImageButtonOptions: {
-            format: 'png',
-            filename: 'gw_events_mass_plot',
-            height: 1000,
-            width: 1400,
-            scale: 2
+            bgcolor: 'rgba(255,255,255,0.9)',
+            bordercolor: '#ccc',
+            borderwidth: 1
         }
     };
-    
-    // Create plot
-    Plotly.newPlot('massPlot', traces, layout, config);
+
+    Plotly.newPlot(container, traces, layout, {
+        responsive: true,
+        displaylogo: false
+    });
 }
 
 function createTrace(events, name, color) {
@@ -193,275 +186,102 @@ function createTrace(events, name, color) {
         y: events.map(e => e.m2),
         mode: 'markers',
         type: 'scatter',
-        name: name,
+        name,
         marker: {
             size: events.map(e => Math.max(8, Math.min(25, e.snr || 10))),
-            color: color,
+            color,
             opacity: 0.7,
-            line: {
-                color: color,
-                width: 1.5
-            },
-            symbol: 'circle'
+            line: { color, width: 1 }
         },
-        text: events.map(e => 
-            `<b>${e.name}</b><br>` +
-            `M₁: ${e.m1} M☉<br>` +
-            `M₂: ${e.m2} M☉<br>` +
-            `SNR: ${e.snr || 'N/A'}<br>` +
-            `Type: ${e.source_type}<br>` +
-            `Date: ${e.detection_date}` +
-            (e.luminosity_distance ? `<br>Distance: ${e.luminosity_distance} Mpc` : '') +
-            (e.final_mass_source ? `<br>Final Mass: ${e.final_mass_source} M☉` : '') +
-            (e.final_spin ? `<br>Final Spin: ${e.final_spin}` : '')
+        text: events.map(e =>
+            `<b>${e.name}</b><br>
+             M₁: ${e.m1} M☉<br>
+             M₂: ${e.m2} M☉<br>
+             SNR: ${e.snr ?? 'N/A'}<br>
+             Type: ${e.source_type}<br>
+             Date: ${e.detection_date}`
         ),
-        hovertemplate: '%{text}<extra></extra>',
-        hoverlabel: {
-            bgcolor: '#ffffff',
-            bordercolor: color,
-            font: {
-                family: 'Arial, sans-serif',
-                size: 12,
-                color: '#333'
-            }
-        }
+        hovertemplate: '%{text}<extra></extra>'
     };
 }
 
-// Create mass distribution histograms
+// ===============================
+// Mass histograms
+// ===============================
 function createMassHistograms(events) {
-    const m1_values = events.map(e => e.m1);
-    const m2_values = events.map(e => e.m2);
-    const mtotal_values = events.map(e => e.m1 + e.m2);
-    
+    const container = document.getElementById('massHistogram');
+    if (!container) return;
+
     const traces = [
-        {
-            x: m1_values,
-            type: 'histogram',
-            name: 'M₁ (Primary)',
-            opacity: 0.7,
-            marker: { color: '#0066cc' },
-            xbins: { size: 5 }
-        },
-        {
-            x: m2_values,
-            type: 'histogram',
-            name: 'M₂ (Secondary)',
-            opacity: 0.7,
-            marker: { color: '#ff8c42' },
-            xbins: { size: 5 }
-        },
-        {
-            x: mtotal_values,
-            type: 'histogram',
-            name: 'M_total',
-            opacity: 0.7,
-            marker: { color: '#2ecc71' },
-            xbins: { size: 5 }
-        }
+        { x: events.map(e => e.m1), type: 'histogram', name: 'M₁' },
+        { x: events.map(e => e.m2), type: 'histogram', name: 'M₂' },
+        { x: events.map(e => e.m1 + e.m2), type: 'histogram', name: 'M_total' }
     ];
-    
-    const layout = {
-        xaxis: {
-            title: 'Mass (M☉)',
-            gridcolor: '#e0e0e0',
-            tickfont: { color: '#666' }
-        },
-        yaxis: {
-            title: 'Count',
-            gridcolor: '#e0e0e0',
-            tickfont: { color: '#666' }
-        },
+
+    Plotly.newPlot(container, traces, {
         barmode: 'overlay',
-        plot_bgcolor: '#ffffff',
-        paper_bgcolor: '#ffffff',
-        showlegend: true,
-        legend: {
-            x: 0.7,
-            y: 0.98,
-            bgcolor: 'rgba(255,255,255,0.9)',
-            bordercolor: '#ccc',
-            borderwidth: 1
-        },
-        margin: { l: 50, r: 30, t: 30, b: 50 }
-    };
-    
-    const config = {
-        responsive: true,
-        displayModeBar: true,
-        displaylogo: false,
-        modeBarButtonsToRemove: ['lasso2d', 'select2d']
-    };
-    
-    Plotly.newPlot('massHistogram', traces, layout, config);
+        plot_bgcolor: '#fff',
+        paper_bgcolor: '#fff'
+    }, { responsive: true });
 }
 
-// Create effective spin distribution
+// ===============================
+// Spin plot
+// ===============================
 function createSpinPlot(events) {
-    const eventsWithSpin = events.filter(e => e.chi_eff !== null && e.chi_eff !== undefined);
-    
-    if (eventsWithSpin.length === 0) {
-        document.getElementById('spinPlot').innerHTML = 
-            '<div style="text-align:center;padding:2rem;color:#999;">No spin data available for current selection</div>';
+    const container = document.getElementById('spinPlot');
+    if (!container) return;
+
+    const values = events
+        .map(e => e.chi_eff)
+        .filter(v => v !== null && v !== undefined);
+
+    if (values.length === 0) {
+        container.innerHTML =
+            '<div style="text-align:center;padding:2rem;color:#999;">No spin data</div>';
         return;
     }
-    
-    const spinValues = eventsWithSpin.map(e => e.chi_eff);
-    
-    const trace = {
-        x: spinValues,
-        type: 'histogram',
-        marker: { 
-            color: '#9b59b6',
-            line: { color: '#8e44ad', width: 1 }
-        },
-        opacity: 0.75,
-        xbins: { size: 0.1 }
-    };
-    
-    const layout = {
-        xaxis: {
-            title: 'Effective Spin (χₑff)',
-            gridcolor: '#e0e0e0',
-            tickfont: { color: '#666' },
-            zeroline: true,
-            zerolinecolor: '#999',
-            zerolinewidth: 2
-        },
-        yaxis: {
-            title: 'Count',
-            gridcolor: '#e0e0e0',
-            tickfont: { color: '#666' }
-        },
-        plot_bgcolor: '#ffffff',
-        paper_bgcolor: '#ffffff',
-        showlegend: false,
-        margin: { l: 50, r: 30, t: 30, b: 50 },
-        annotations: [{
-            x: 0,
-            y: 0,
-            xref: 'x',
-            yref: 'paper',
-            text: 'Non-spinning',
-            showarrow: false,
-            font: { size: 10, color: '#999' },
-            yshift: -20
-        }]
-    };
-    
-    const config = {
-        responsive: true,
-        displayModeBar: true,
-        displaylogo: false,
-        modeBarButtonsToRemove: ['lasso2d', 'select2d']
-    };
-    
-    Plotly.newPlot('spinPlot', [trace], layout, config);
+
+    Plotly.newPlot(container, [{
+        x: values,
+        type: 'histogram'
+    }], {
+        xaxis: { title: 'χₑff' },
+        plot_bgcolor: '#fff',
+        paper_bgcolor: '#fff'
+    }, { responsive: true });
 }
 
-// Create cumulative detections timeline
+// ===============================
+// Timeline
+// ===============================
 function createTimelinePlot(events) {
-    // Sort events by date
-    const sortedEvents = [...events].sort((a, b) => {
-        return new Date(a.detection_date) - new Date(b.detection_date);
-    });
-    
-    // Create cumulative count
-    const dates = [];
-    const counts = [];
-    const bbhCounts = [];
-    const nsbhCounts = [];
-    const bnsCounts = [];
-    
-    let totalCount = 0;
-    let bbhCount = 0;
-    let nsbhCount = 0;
-    let bnsCount = 0;
-    
-    sortedEvents.forEach(event => {
-        if (event.detection_date !== 'Unknown') {
-            dates.push(event.detection_date);
-            totalCount++;
-            counts.push(totalCount);
-            
-            if (event.source_type === 'BBH') bbhCount++;
-            if (event.source_type === 'NSBH') nsbhCount++;
-            if (event.source_type === 'BNS') bnsCount++;
-            
-            bbhCounts.push(bbhCount);
-            nsbhCounts.push(nsbhCount);
-            bnsCounts.push(bnsCount);
-        }
-    });
-    
-    const traces = [
-        {
-            x: dates,
-            y: counts,
-            type: 'scatter',
-            mode: 'lines',
-            name: 'Total',
-            line: { color: '#333', width: 3 }
-        },
-        {
-            x: dates,
-            y: bbhCounts,
-            type: 'scatter',
-            mode: 'lines',
-            name: 'BBH',
-            line: { color: '#9b59b6', width: 2 }
-        },
-        {
-            x: dates,
-            y: nsbhCounts,
-            type: 'scatter',
-            mode: 'lines',
-            name: 'NSBH',
-            line: { color: '#e67e22', width: 2 }
-        },
-        {
-            x: dates,
-            y: bnsCounts,
-            type: 'scatter',
-            mode: 'lines',
-            name: 'BNS',
-            line: { color: '#3498db', width: 2 }
-        }
-    ];
-    
-    const layout = {
-        xaxis: {
-            title: 'Detection Date',
-            gridcolor: '#e0e0e0',
-            tickfont: { color: '#666' }
-        },
-        yaxis: {
-            title: 'Cumulative Detections',
-            gridcolor: '#e0e0e0',
-            tickfont: { color: '#666' }
-        },
-        plot_bgcolor: '#ffffff',
-        paper_bgcolor: '#ffffff',
-        showlegend: true,
-        legend: {
-            x: 0.02,
-            y: 0.98,
-            bgcolor: 'rgba(255,255,255,0.9)',
-            bordercolor: '#ccc',
-            borderwidth: 1
-        },
-        margin: { l: 50, r: 30, t: 30, b: 50 }
-    };
-    
-    const config = {
-        responsive: true,
-        displayModeBar: true,
-        displaylogo: false,
-        modeBarButtonsToRemove: ['lasso2d', 'select2d']
-    };
-    
-    Plotly.newPlot('timelinePlot', traces, layout, config);
-}
+    const container = document.getElementById('timelinePlot');
+    if (!container) return;
 
-// Load data on page load
-loadData();
+    const sorted = [...events]
+        .filter(e => e.detection_date && e.detection_date !== 'Unknown')
+        .sort((a, b) => new Date(a.detection_date) - new Date(b.detection_date));
+
+    let count = 0;
+    const dates = [];
+    const totals = [];
+
+    sorted.forEach(e => {
+        dates.push(e.detection_date);
+        totals.push(++count);
+    });
+
+    Plotly.newPlot(container, [{
+        x: dates,
+        y: totals,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Cumulative detections'
+    }], {
+        xaxis: { title: 'Date' },
+        yaxis: { title: 'Cumulative detections' },
+        plot_bgcolor: '#fff',
+        paper_bgcolor: '#fff'
+    }, { responsive: true });
+}
