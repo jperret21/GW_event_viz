@@ -231,7 +231,8 @@ def main():
         return
     
     # Save to JSON
-    output_path = "data/gw_events.json"
+    output_path = "docs/data/gw_events.json"  
+
     save_data(processed_events, output_path)
     
     print("=" * 60)
