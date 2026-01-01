@@ -144,7 +144,7 @@ def extract_event_parameters(events):
         common_name = event_data.get('commonName', event_name)
         catalog = event_data.get('catalog.shortName', 'Unknown')
         version = event_data.get('version', 1)
-        
+      
         # Compile event info with ALL available parameters
         event_info = {
             'name': common_name,
@@ -155,7 +155,7 @@ def extract_event_parameters(events):
             'source_type': source_type,
             'color': color,
             'detection_date': detection_date,
-            'catalog': catalog_name,
+            'catalog': catalog,
             'version': version,
             'gps_time': gps_time,
             
