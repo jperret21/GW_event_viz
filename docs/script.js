@@ -37,8 +37,8 @@ async function loadData() {
 }
 
 function populateCatalogFilter(events) {
-    // Extract unique catalogs
-    const catalogs = [...new Set(events.map(e => e.version))].sort();
+    // Extract unique catalogs from catalog field
+    const catalogs = [...new Set(events.map(e => e.catalog))].filter(c => c && c !== 'unknown').sort();
     
     const select = document.getElementById('catalogFilter');
     
@@ -56,7 +56,7 @@ function populateCatalogFilter(events) {
         if (selectedCatalog === 'all') {
             displayEvents(allEventsData.events);
         } else {
-            const filtered = allEventsData.events.filter(event => event.version === selectedCatalog);
+            const filtered = allEventsData.events.filter(event => event.catalog === selectedCatalog);
             displayEvents(filtered);
         }
     });
