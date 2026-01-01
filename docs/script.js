@@ -66,6 +66,11 @@ function displayEvents(events) {
     updateStats(events);
     createPlot(events);
     updateFilterInfo(events.length, allEventsData.event_count);
+    
+    // Create additional plots
+    createMassHistograms(events);
+    createSpinPlot(events);
+    createTimelinePlot(events);
 }
 
 function updateFilterInfo(displayed, total) {
@@ -221,6 +226,241 @@ function createTrace(events, name, color) {
             }
         }
     };
+}
+
+// Create mass distribution histograms
+function createMassHistograms(events) {
+    const m1_values = events.map(e => e.m1);
+    const m2_values = events.map(e => e.m2);
+    const mtotal_values = events.map(e => e.m1 + e.m2);
+    
+    const traces = [
+        {
+            x: m1_values,
+            type: 'histogram',
+            name: 'M₁ (Primary)',
+            opacity: 0.7,
+            marker: { color: '#0066cc' },
+            xbins: { size: 5 }
+        },
+        {
+            x: m2_values,
+            type: 'histogram',
+            name: 'M₂ (Secondary)',
+            opacity: 0.7,
+            marker: { color: '#ff8c42' },
+            xbins: { size: 5 }
+        },
+        {
+            x: mtotal_values,
+            type: 'histogram',
+            name: 'M_total',
+            opacity: 0.7,
+            marker: { color: '#2ecc71' },
+            xbins: { size: 5 }
+        }
+    ];
+    
+    const layout = {
+        xaxis: {
+            title: 'Mass (M☉)',
+            gridcolor: '#e0e0e0',
+            tickfont: { color: '#666' }
+        },
+        yaxis: {
+            title: 'Count',
+            gridcolor: '#e0e0e0',
+            tickfont: { color: '#666' }
+        },
+        barmode: 'overlay',
+        plot_bgcolor: '#ffffff',
+        paper_bgcolor: '#ffffff',
+        showlegend: true,
+        legend: {
+            x: 0.7,
+            y: 0.98,
+            bgcolor: 'rgba(255,255,255,0.9)',
+            bordercolor: '#ccc',
+            borderwidth: 1
+        },
+        margin: { l: 50, r: 30, t: 30, b: 50 }
+    };
+    
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+    };
+    
+    Plotly.newPlot('massHistogram', traces, layout, config);
+}
+
+// Create effective spin distribution
+function createSpinPlot(events) {
+    const eventsWithSpin = events.filter(e => e.chi_eff !== null && e.chi_eff !== undefined);
+    
+    if (eventsWithSpin.length === 0) {
+        document.getElementById('spinPlot').innerHTML = 
+            '<div style="text-align:center;padding:2rem;color:#999;">No spin data available for current selection</div>';
+        return;
+    }
+    
+    const spinValues = eventsWithSpin.map(e => e.chi_eff);
+    
+    const trace = {
+        x: spinValues,
+        type: 'histogram',
+        marker: { 
+            color: '#9b59b6',
+            line: { color: '#8e44ad', width: 1 }
+        },
+        opacity: 0.75,
+        xbins: { size: 0.1 }
+    };
+    
+    const layout = {
+        xaxis: {
+            title: 'Effective Spin (χₑff)',
+            gridcolor: '#e0e0e0',
+            tickfont: { color: '#666' },
+            zeroline: true,
+            zerolinecolor: '#999',
+            zerolinewidth: 2
+        },
+        yaxis: {
+            title: 'Count',
+            gridcolor: '#e0e0e0',
+            tickfont: { color: '#666' }
+        },
+        plot_bgcolor: '#ffffff',
+        paper_bgcolor: '#ffffff',
+        showlegend: false,
+        margin: { l: 50, r: 30, t: 30, b: 50 },
+        annotations: [{
+            x: 0,
+            y: 0,
+            xref: 'x',
+            yref: 'paper',
+            text: 'Non-spinning',
+            showarrow: false,
+            font: { size: 10, color: '#999' },
+            yshift: -20
+        }]
+    };
+    
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+    };
+    
+    Plotly.newPlot('spinPlot', [trace], layout, config);
+}
+
+// Create cumulative detections timeline
+function createTimelinePlot(events) {
+    // Sort events by date
+    const sortedEvents = [...events].sort((a, b) => {
+        return new Date(a.detection_date) - new Date(b.detection_date);
+    });
+    
+    // Create cumulative count
+    const dates = [];
+    const counts = [];
+    const bbhCounts = [];
+    const nsbhCounts = [];
+    const bnsCounts = [];
+    
+    let totalCount = 0;
+    let bbhCount = 0;
+    let nsbhCount = 0;
+    let bnsCount = 0;
+    
+    sortedEvents.forEach(event => {
+        if (event.detection_date !== 'Unknown') {
+            dates.push(event.detection_date);
+            totalCount++;
+            counts.push(totalCount);
+            
+            if (event.source_type === 'BBH') bbhCount++;
+            if (event.source_type === 'NSBH') nsbhCount++;
+            if (event.source_type === 'BNS') bnsCount++;
+            
+            bbhCounts.push(bbhCount);
+            nsbhCounts.push(nsbhCount);
+            bnsCounts.push(bnsCount);
+        }
+    });
+    
+    const traces = [
+        {
+            x: dates,
+            y: counts,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Total',
+            line: { color: '#333', width: 3 }
+        },
+        {
+            x: dates,
+            y: bbhCounts,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'BBH',
+            line: { color: '#9b59b6', width: 2 }
+        },
+        {
+            x: dates,
+            y: nsbhCounts,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'NSBH',
+            line: { color: '#e67e22', width: 2 }
+        },
+        {
+            x: dates,
+            y: bnsCounts,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'BNS',
+            line: { color: '#3498db', width: 2 }
+        }
+    ];
+    
+    const layout = {
+        xaxis: {
+            title: 'Detection Date',
+            gridcolor: '#e0e0e0',
+            tickfont: { color: '#666' }
+        },
+        yaxis: {
+            title: 'Cumulative Detections',
+            gridcolor: '#e0e0e0',
+            tickfont: { color: '#666' }
+        },
+        plot_bgcolor: '#ffffff',
+        paper_bgcolor: '#ffffff',
+        showlegend: true,
+        legend: {
+            x: 0.02,
+            y: 0.98,
+            bgcolor: 'rgba(255,255,255,0.9)',
+            bordercolor: '#ccc',
+            borderwidth: 1
+        },
+        margin: { l: 50, r: 30, t: 30, b: 50 }
+    };
+    
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+    };
+    
+    Plotly.newPlot('timelinePlot', traces, layout, config);
 }
 
 // Load data on page load
