@@ -38,6 +38,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
+      - name: Create data directory
+        run: |
+          mkdir -p docs/data
+      
       - name: Fetch GWOSC data
         run: |
           python src/fetch_gwosc_data.py
@@ -45,14 +49,14 @@ jobs:
       - name: Check for changes
         id: check_changes
         run: |
-          git diff --quiet data/gw_events.json || echo "changes=true" >> $GITHUB_OUTPUT
+          git diff --quiet docs/data/gw_events.json || echo "changes=true" >> $GITHUB_OUTPUT
       
       - name: Commit and push changes
         if: steps.check_changes.outputs.changes == 'true'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data/gw_events.json
+          git add docs/data/gw_events.json
           git commit -m "Update gravitational wave events data - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
           git push
       
