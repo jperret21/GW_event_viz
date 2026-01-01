@@ -387,7 +387,7 @@
         // Load and visualize gravitational wave data
         async function loadData() {
             try {
-                const response = await fetch('data/gw_events.json');
+                const response = await fetch('./data/gw_events.json');
                 
                 if (!response.ok) throw new Error('Failed to load data');
                 
