@@ -54,24 +54,25 @@ def extract_event_parameters(events):
     
     for event_name, event_data in events.items():
         
-        # Extract parameters - values are direct numbers, no .median or .best
+        # Extract parameters
+        # IMPORTANT: GWOSC uses hyphens in parameter names, not underscores!
         params = event_data.get('parameters', {})
         
         # Get mass parameters (in solar masses)
-        # Parameters are directly numbers, not nested dicts
-        m1_source = params.get('mass_1_source')
-        m2_source = params.get('mass_2_source')
+        # Try source frame masses first (corrected for cosmological effects)
+        m1_source = params.get('mass-1-source')
+        m2_source = params.get('mass-2-source')
         
         # If source masses not available, try detector frame masses
         if m1_source is None:
-            m1_source = params.get('mass_1')
+            m1_source = params.get('mass-1')
         if m2_source is None:
-            m2_source = params.get('mass_2')
+            m2_source = params.get('mass-2')
         
         # Calculate from chirp mass and mass ratio if needed
         if m1_source is None or m2_source is None:
-            chirp_mass = params.get('chirp_mass_source') or params.get('chirp_mass')
-            mass_ratio = params.get('mass_ratio')
+            chirp_mass = params.get('chirp-mass-source') or params.get('chirp-mass')
+            mass_ratio = params.get('mass-ratio')
             
             if chirp_mass and mass_ratio and 0 < mass_ratio <= 1:
                 # q = m2/m1, where q <= 1
@@ -95,18 +96,18 @@ def extract_event_parameters(events):
             continue
         
         # Get SNR (signal-to-noise ratio)
-        snr = params.get('network_matched_filter_snr', 10.0)
+        snr = params.get('network-matched-filter-snr', 10.0)
         try:
             snr = float(snr)
         except (TypeError, ValueError):
             snr = 10.0
         
         # Get luminosity distance
-        luminosity_distance = params.get('luminosity_distance')
+        luminosity_distance = params.get('luminosity-distance')
         
         # Get final mass and spin
-        final_mass = params.get('final_mass_source') or params.get('final_mass')
-        final_spin = params.get('final_spin')
+        final_mass = params.get('final-mass-source') or params.get('final-mass')
+        final_spin = params.get('final-spin')
         
         # Determine source type based on masses
         # Typical thresholds: NS < 3 M☉, BH > 3 M☉
@@ -138,7 +139,7 @@ def extract_event_parameters(events):
         # Get event version
         version = event_data.get('version', 'unknown')
         
-        # Get common name
+        # Get common name (if available)
         common_name = params.get('commonName', event_name)
         
         # Compile event info
