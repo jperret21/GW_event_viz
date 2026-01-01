@@ -22,7 +22,7 @@ def fetch_gwosc_events():
     """
     print("Fetching gravitational wave events from GWOSC...")
     
-    # GWOSC API endpoint - using jsonfull to get all parameters
+    # GWOSC API endpoint - jsonfull returns all parameters at top level
     url = "https://gwosc.org/eventapi/jsonfull/allevents/"
     
     try:
@@ -54,24 +54,23 @@ def extract_event_parameters(events):
     
     for event_name, event_data in events.items():
         
-        # GWOSC uses HYPHENS in parameter names (e.g., "mass-1-source")
-        # Parameters are at the top level in jsonfull, not nested
+        # All parameters are at the top level with underscores
+        # Example: mass_1_source, mass_2_source (not nested, not hyphens!)
         
         # Get mass parameters (in solar masses)
-        # Try source frame masses first (corrected for cosmological effects)
-        m1_source = event_data.get('mass-1-source')
-        m2_source = event_data.get('mass-2-source')
+        m1_source = event_data.get('mass_1_source')
+        m2_source = event_data.get('mass_2_source')
         
         # If source masses not available, try detector frame masses
         if m1_source is None:
-            m1_source = event_data.get('mass-1')
+            m1_source = event_data.get('mass_1')
         if m2_source is None:
-            m2_source = event_data.get('mass-2')
+            m2_source = event_data.get('mass_2')
         
         # Calculate from chirp mass and mass ratio if needed
         if m1_source is None or m2_source is None:
-            chirp_mass = event_data.get('chirp-mass-source') or event_data.get('chirp-mass')
-            mass_ratio = event_data.get('mass-ratio')
+            chirp_mass = event_data.get('chirp_mass_source') or event_data.get('chirp_mass')
+            mass_ratio = event_data.get('mass_ratio')
             
             if chirp_mass and mass_ratio and 0 < mass_ratio <= 1:
                 # q = m2/m1, where q <= 1
@@ -95,7 +94,7 @@ def extract_event_parameters(events):
             continue
         
         # Get SNR (signal-to-noise ratio)
-        snr = event_data.get('network-matched-filter-snr')
+        snr = event_data.get('network_matched_filter_snr')
         if snr is None:
             snr = 10.0
         try:
@@ -103,12 +102,16 @@ def extract_event_parameters(events):
         except (TypeError, ValueError):
             snr = 10.0
         
-        # Get luminosity distance
-        luminosity_distance = event_data.get('luminosity-distance')
-        
-        # Get final mass and spin
-        final_mass = event_data.get('final-mass-source') or event_data.get('final-mass')
-        final_spin = event_data.get('final-spin')
+        # Get all other parameters we want to save
+        luminosity_distance = event_data.get('luminosity_distance')
+        chi_eff = event_data.get('chi_eff')
+        total_mass_source = event_data.get('total_mass_source')
+        chirp_mass_source = event_data.get('chirp_mass_source')
+        redshift = event_data.get('redshift')
+        final_mass_source = event_data.get('final_mass_source')
+        final_spin = event_data.get('final_spin')
+        far = event_data.get('far')
+        p_astro = event_data.get('p_astro')
         
         # Determine source type based on masses
         # Typical thresholds: NS < 3 M☉, BH > 3 M☉
@@ -137,26 +140,35 @@ def extract_event_parameters(events):
         except:
             detection_date = "Unknown"
         
-        # Get common name
+        # Get common name and catalog
         common_name = event_data.get('commonName', event_name)
-        
-        # Get catalog
         catalog_name = event_data.get('catalog.shortName', 'unknown')
+        version = event_data.get('version', 1)
         
-        # Compile event info
+        # Compile event info with ALL available parameters
         event_info = {
             'name': common_name,
+            'full_name': event_name,
             'm1': round(m1, 2),
             'm2': round(m2, 2),
-            'snr': round(snr, 1),
+            'snr': round(snr, 1) if snr else None,
             'source_type': source_type,
             'color': color,
             'detection_date': detection_date,
-            'version': catalog_name,
+            'catalog': catalog_name,
+            'version': version,
+            'gps_time': gps_time,
+            
+            # Additional parameters
             'luminosity_distance': round(float(luminosity_distance), 1) if luminosity_distance else None,
-            'final_mass': round(float(final_mass), 2) if final_mass else None,
+            'chi_eff': round(float(chi_eff), 3) if chi_eff else None,
+            'total_mass_source': round(float(total_mass_source), 2) if total_mass_source else None,
+            'chirp_mass_source': round(float(chirp_mass_source), 2) if chirp_mass_source else None,
+            'redshift': round(float(redshift), 3) if redshift else None,
+            'final_mass_source': round(float(final_mass_source), 2) if final_mass_source else None,
             'final_spin': round(float(final_spin), 3) if final_spin else None,
-            'gps_time': gps_time
+            'far': float(far) if far else None,
+            'p_astro': round(float(p_astro), 3) if p_astro else None,
         }
         
         processed_events.append(event_info)
