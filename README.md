@@ -1,7 +1,5 @@
 # Gravitational Wave Events Visualization
 
-![Update Data](https://github.com/yourusername/gw-events-viz/workflows/Update%20Data/badge.svg)
-
 An interactive visualization of gravitational wave events detected by LIGO, Virgo, and KAGRA observatories. Data is automatically fetched from GWOSC (Gravitational Wave Open Science Center) and updated daily.
 
 ## Features
@@ -15,7 +13,7 @@ An interactive visualization of gravitational wave events detected by LIGO, Virg
 
 ## Live Demo
 
-🔗 [View Live Visualization](https://yourusername.github.io/gw-events-viz/)
+🔗 [View Live Visualization](https://perretjules.com/GW_event_viz/)
 
 ## Data Source
 
