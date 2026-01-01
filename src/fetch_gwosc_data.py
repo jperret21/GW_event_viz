@@ -22,8 +22,8 @@ def fetch_gwosc_events():
     """
     print("Fetching gravitational wave events from GWOSC...")
     
-    # GWOSC API endpoint for event catalog
-    url = "https://gwosc.org/eventapi/json/allevents/"
+    # GWOSC API endpoint - using jsonfull to get all parameters
+    url = "https://gwosc.org/eventapi/jsonfull/allevents/"
     
     try:
         response = requests.get(url, timeout=30)
@@ -54,25 +54,24 @@ def extract_event_parameters(events):
     
     for event_name, event_data in events.items():
         
-        # Extract parameters
-        # IMPORTANT: GWOSC uses hyphens in parameter names, not underscores!
-        params = event_data.get('parameters', {})
+        # GWOSC uses HYPHENS in parameter names (e.g., "mass-1-source")
+        # Parameters are at the top level in jsonfull, not nested
         
         # Get mass parameters (in solar masses)
         # Try source frame masses first (corrected for cosmological effects)
-        m1_source = params.get('mass-1-source')
-        m2_source = params.get('mass-2-source')
+        m1_source = event_data.get('mass-1-source')
+        m2_source = event_data.get('mass-2-source')
         
         # If source masses not available, try detector frame masses
         if m1_source is None:
-            m1_source = params.get('mass-1')
+            m1_source = event_data.get('mass-1')
         if m2_source is None:
-            m2_source = params.get('mass-2')
+            m2_source = event_data.get('mass-2')
         
         # Calculate from chirp mass and mass ratio if needed
         if m1_source is None or m2_source is None:
-            chirp_mass = params.get('chirp-mass-source') or params.get('chirp-mass')
-            mass_ratio = params.get('mass-ratio')
+            chirp_mass = event_data.get('chirp-mass-source') or event_data.get('chirp-mass')
+            mass_ratio = event_data.get('mass-ratio')
             
             if chirp_mass and mass_ratio and 0 < mass_ratio <= 1:
                 # q = m2/m1, where q <= 1
@@ -96,18 +95,20 @@ def extract_event_parameters(events):
             continue
         
         # Get SNR (signal-to-noise ratio)
-        snr = params.get('network-matched-filter-snr', 10.0)
+        snr = event_data.get('network-matched-filter-snr')
+        if snr is None:
+            snr = 10.0
         try:
             snr = float(snr)
         except (TypeError, ValueError):
             snr = 10.0
         
         # Get luminosity distance
-        luminosity_distance = params.get('luminosity-distance')
+        luminosity_distance = event_data.get('luminosity-distance')
         
         # Get final mass and spin
-        final_mass = params.get('final-mass-source') or params.get('final-mass')
-        final_spin = params.get('final-spin')
+        final_mass = event_data.get('final-mass-source') or event_data.get('final-mass')
+        final_spin = event_data.get('final-spin')
         
         # Determine source type based on masses
         # Typical thresholds: NS < 3 M☉, BH > 3 M☉
@@ -136,11 +137,11 @@ def extract_event_parameters(events):
         except:
             detection_date = "Unknown"
         
-        # Get event version
-        version = event_data.get('version', 'unknown')
+        # Get common name
+        common_name = event_data.get('commonName', event_name)
         
-        # Get common name (if available)
-        common_name = params.get('commonName', event_name)
+        # Get catalog
+        catalog_name = event_data.get('catalog.shortName', 'unknown')
         
         # Compile event info
         event_info = {
@@ -151,7 +152,7 @@ def extract_event_parameters(events):
             'source_type': source_type,
             'color': color,
             'detection_date': detection_date,
-            'version': version,
+            'version': catalog_name,
             'luminosity_distance': round(float(luminosity_distance), 1) if luminosity_distance else None,
             'final_mass': round(float(final_mass), 2) if final_mass else None,
             'final_spin': round(float(final_spin), 3) if final_spin else None,
