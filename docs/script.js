@@ -35,7 +35,15 @@ async function loadData() {
         allEventsData = data;
 
         populateCatalogFilter(data.events);
-        displayEvents(data.events);
+        const select = document.getElementById('catalogFilter');
+        if (select && select.value !== 'all') {
+            const filtered = data.events.filter(e => e.catalog === select.value);
+            displayEvents(filtered);
+        } else {
+            displayEvents(data.events);
+        }
+
+        
         updateLastUpdate(data.updated);
 
     } catch (error) {
