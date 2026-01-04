@@ -67,12 +67,12 @@
             <div class="plot-header">
                 <div class="plot-title">Component Masses of Detected Binary Systems</div>
                 <div class="plot-description">
-                    Hover over points for event details. Click and drag to zoom.
+                    Click on any point to view detailed event information and catalog versions.
                 </div>
             </div>
-            
+
             <div id="massPlot"></div>
-            
+
             <div class="legend-container">
                 <div class="legend-item">
                     <div class="legend-marker" style="background-color: #9b59b6;"></div>
@@ -85,6 +85,25 @@
                 <div class="legend-item">
                     <div class="legend-marker" style="background-color: #3498db;"></div>
                     <div class="legend-label">BNS (Binary Neutron Star)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Detail Panel -->
+        <div id="eventDetailPanel" class="event-detail-panel" style="display: none;">
+            <div class="detail-header">
+                <h3 id="detailEventName">Event Details</h3>
+                <button id="closeDetailPanel" class="close-button">&times;</button>
+            </div>
+            <div class="detail-content">
+                <div class="detail-section">
+                    <h4>Primary Parameters</h4>
+                    <div id="primaryParameters" class="parameter-grid"></div>
+                </div>
+                <div class="detail-section" id="versionsSection" style="display: none;">
+                    <h4>Catalog Versions</h4>
+                    <p class="version-description">This event appears in multiple catalogs with updated parameter estimates:</p>
+                    <div id="versionsList" class="versions-list"></div>
                 </div>
             </div>
         </div>

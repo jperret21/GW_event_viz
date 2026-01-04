@@ -11,6 +11,7 @@ import json
 import requests
 from datetime import datetime
 from pathlib import Path
+from collections import defaultdict
 
 
 def fetch_gwosc_events():
@@ -184,28 +185,128 @@ def extract_event_parameters(events):
     return processed_events
 
 
+def deduplicate_events(events):
+    """
+    Deduplicate events while preserving all versions.
+
+    For each event name, keep all catalog versions but mark the highest-priority
+    catalog as the primary version for default display.
+
+    Catalog priority (highest to lowest):
+    1. GWTC-4.0 (most recent comprehensive catalog)
+    2. GWTC-3-confident
+    3. GWTC-2.1-confident
+    4. GWTC-1-confident
+    5. O4_Discovery_Papers (preliminary O4 results)
+
+    Catalogs to exclude (redundant or confusing):
+    - GWTC-2 (superseded by GWTC-2.1)
+    - GWTC-3-marginal (lower confidence)
+    - IAS-O3a (independent analysis, creates duplicates)
+    - O3_Discovery_Papers (superseded by GWTC catalogs)
+
+    Parameters:
+        events (list): Processed event data
+
+    Returns:
+        tuple: (filtered_events, unique_events_data)
+            - filtered_events: All events from relevant catalogs
+            - unique_events_data: Dict mapping event name to all its versions
+    """
+    # Define catalog priorities (higher = better)
+    CATALOG_PRIORITY = {
+        'GWTC-4.0': 100,
+        'GWTC-3-confident': 90,
+        'GWTC-2.1-confident': 80,
+        'GWTC-1-confident': 70,
+        'O4_Discovery_Papers': 60,
+    }
+
+    # Catalogs to exclude
+    EXCLUDED_CATALOGS = {
+        'GWTC-2',
+        'GWTC-3-marginal',
+        'IAS-O3a',
+        'O3_Discovery_Papers'
+    }
+
+    # Filter out excluded catalogs
+    filtered_events = [e for e in events if e['catalog'] not in EXCLUDED_CATALOGS]
+
+    print(f"\nFiltered out {len(events) - len(filtered_events)} events from excluded catalogs")
+    print(f"Remaining events: {len(filtered_events)}")
+
+    # Group events by name
+    events_by_name = defaultdict(list)
+    for event in filtered_events:
+        events_by_name[event['name']].append(event)
+
+    # For each event, determine the primary version
+    unique_events_data = {}
+    for name, versions in events_by_name.items():
+        # Sort versions by catalog priority
+        versions_sorted = sorted(
+            versions,
+            key=lambda e: CATALOG_PRIORITY.get(e['catalog'], 0),
+            reverse=True
+        )
+
+        # Mark the primary version
+        primary = versions_sorted[0].copy()
+        primary['is_primary'] = True
+        primary['all_versions'] = versions_sorted  # Keep all versions
+
+        unique_events_data[name] = {
+            'primary': primary,
+            'all_versions': versions_sorted,
+            'version_count': len(versions_sorted)
+        }
+
+    print(f"\nUnique events: {len(unique_events_data)}")
+
+    # Count events with multiple versions
+    multi_version_count = sum(1 for data in unique_events_data.values() if data['version_count'] > 1)
+    print(f"Events with multiple catalog versions: {multi_version_count}")
+
+    return filtered_events, unique_events_data
+
+
 def save_data(events, output_path):
     """
-    Save processed events to JSON file.
-    
+    Save processed events to JSON file with deduplication.
+
     Parameters:
         events (list): Processed event data
         output_path (str): Path to output JSON file
     """
     output_file = Path(output_path)
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    
+
+    # Deduplicate events
+    filtered_events, unique_events_data = deduplicate_events(events)
+
+    # Create primary events list (one per unique event)
+    primary_events = [data['primary'] for data in unique_events_data.values()]
+
+    # Sort by GPS time (most recent first)
+    primary_events.sort(key=lambda x: x['gps_time'], reverse=True)
+
+    # Prepare data structure
     data = {
         'updated': datetime.utcnow().isoformat() + 'Z',
-        'event_count': len(events),
-        'events': events
+        'total_entries': len(events),
+        'filtered_entries': len(filtered_events),
+        'unique_events': len(unique_events_data),
+        'events': primary_events,  # Primary version of each event
+        'all_events': filtered_events,  # All versions from relevant catalogs
     }
-    
+
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    
+
     print(f"\nData saved to {output_file}")
-    print(f"Total events: {len(events)}")
+    print(f"Unique events (primary versions): {len(primary_events)}")
+    print(f"Total entries (all versions): {len(filtered_events)}")
 
 
 def main():
