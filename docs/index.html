@@ -89,6 +89,47 @@
             </div>
         </div>
 
+        <!-- Mass Distribution Analysis -->
+        <div class="section">
+            <h2>Mass Distribution Analysis</h2>
+            <p>
+                Kernel Density Estimation (KDE) of individual component masses (M₁ and M₂) with 90% confidence intervals.
+                This reveals the underlying mass distribution of compact objects detected by LIGO, Virgo, and KAGRA.
+            </p>
+        </div>
+
+        <div class="plot-container">
+            <div class="plot-header">
+                <div class="plot-title">Component Mass Distributions</div>
+                <div class="plot-description">
+                    Distribution of primary (M₁) and secondary (M₂) component masses with bootstrap-estimated 90% confidence intervals.
+                </div>
+            </div>
+
+            <div id="massDistPlot"></div>
+        </div>
+
+        <!-- Final Mass and Mass Gap Analysis -->
+        <div class="section">
+            <h2>Final Mass and the Mass Gap</h2>
+            <p>
+                Final mass distribution of merger remnants highlighting the mass gap phenomenon (2.5-5 M☉).
+                This historically empty region between neutron stars and black holes is being probed by recent detections like GW230529.
+            </p>
+        </div>
+
+        <div class="plot-container">
+            <div class="plot-header">
+                <div class="plot-title">Final Mass Distribution and Mass Gap Exploration</div>
+                <div class="plot-description">
+                    Shaded regions mark the neutron star zone (0-2.5 M☉) in blue, the mass gap (2.5-5 M☉) in yellow,
+                    and the black hole zone (5+ M☉) in purple. The mass gap, once thought to be empty, is now being populated by detections from the LIGO-Virgo-KAGRA collaboration.
+                </div>
+            </div>
+
+            <div id="finalMassPlot"></div>
+        </div>
+
         <!-- Event Detail Panel -->
         <div id="eventDetailPanel" class="event-detail-panel" style="display: none;">
             <div class="detail-header">
@@ -102,7 +143,7 @@
                 </div>
                 <div class="detail-section" id="versionsSection" style="display: none;">
                     <h4>Catalog Versions</h4>
-                    <p class="version-description">This event appears in multiple catalogs with updated parameter estimates:</p>
+                    <p class="version-description">This event appears in multiple catalogs. Click on the tabs below to compare parameter estimates across different catalog releases:</p>
                     <div id="versionsList" class="versions-list"></div>
                 </div>
             </div>

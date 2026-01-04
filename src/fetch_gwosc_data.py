@@ -58,9 +58,14 @@ def extract_event_parameters(events):
         # All parameters are at the top level with underscores
         # Example: mass_1_source, mass_2_source (not nested, not hyphens!)
         
-        # Get mass parameters (in solar masses)
+        # Get mass parameters (in solar masses) with confidence intervals
         m1_source = event_data.get('mass_1_source')
+        m1_source_lower = event_data.get('mass_1_source_lower')
+        m1_source_upper = event_data.get('mass_1_source_upper')
+
         m2_source = event_data.get('mass_2_source')
+        m2_source_lower = event_data.get('mass_2_source_lower')
+        m2_source_upper = event_data.get('mass_2_source_upper')
         
         # If source masses not available, try detector frame masses
         if m1_source is None:
@@ -103,14 +108,35 @@ def extract_event_parameters(events):
         except (TypeError, ValueError):
             snr = 10.0
         
-        # Get all other parameters we want to save
+        # Get all other parameters we want to save with confidence intervals
         luminosity_distance = event_data.get('luminosity_distance')
+        luminosity_distance_lower = event_data.get('luminosity_distance_lower')
+        luminosity_distance_upper = event_data.get('luminosity_distance_upper')
+
         chi_eff = event_data.get('chi_eff')
+        chi_eff_lower = event_data.get('chi_eff_lower')
+        chi_eff_upper = event_data.get('chi_eff_upper')
+
         total_mass_source = event_data.get('total_mass_source')
+        total_mass_source_lower = event_data.get('total_mass_source_lower')
+        total_mass_source_upper = event_data.get('total_mass_source_upper')
+
         chirp_mass_source = event_data.get('chirp_mass_source')
+        chirp_mass_source_lower = event_data.get('chirp_mass_source_lower')
+        chirp_mass_source_upper = event_data.get('chirp_mass_source_upper')
+
         redshift = event_data.get('redshift')
+        redshift_lower = event_data.get('redshift_lower')
+        redshift_upper = event_data.get('redshift_upper')
+
         final_mass_source = event_data.get('final_mass_source')
+        final_mass_source_lower = event_data.get('final_mass_source_lower')
+        final_mass_source_upper = event_data.get('final_mass_source_upper')
+
         final_spin = event_data.get('final_spin')
+        final_spin_lower = event_data.get('final_spin_lower')
+        final_spin_upper = event_data.get('final_spin_upper')
+
         far = event_data.get('far')
         p_astro = event_data.get('p_astro')
         
@@ -146,7 +172,7 @@ def extract_event_parameters(events):
         catalog = event_data.get('catalog.shortName', 'Unknown')
         version = event_data.get('version', 1)
       
-        # Compile event info with ALL available parameters
+        # Compile event info with ALL available parameters including confidence intervals
         event_info = {
             'name': common_name,
             'full_name': event_name,
@@ -159,17 +185,44 @@ def extract_event_parameters(events):
             'catalog': catalog,
             'version': version,
             'gps_time': gps_time,
-            
-            # Additional parameters
+
+            # Mass confidence intervals
+            'm1_lower': round(float(m1_source_lower), 2) if m1_source_lower is not None else None,
+            'm1_upper': round(float(m1_source_upper), 2) if m1_source_upper is not None else None,
+            'm2_lower': round(float(m2_source_lower), 2) if m2_source_lower is not None else None,
+            'm2_upper': round(float(m2_source_upper), 2) if m2_source_upper is not None else None,
+
+            # Additional parameters with confidence intervals
             'luminosity_distance': round(float(luminosity_distance), 1) if luminosity_distance else None,
-            'chi_eff': round(float(chi_eff), 3) if chi_eff else None,
+            'luminosity_distance_lower': round(float(luminosity_distance_lower), 1) if luminosity_distance_lower is not None else None,
+            'luminosity_distance_upper': round(float(luminosity_distance_upper), 1) if luminosity_distance_upper is not None else None,
+
+            'chi_eff': round(float(chi_eff), 3) if chi_eff is not None else None,
+            'chi_eff_lower': round(float(chi_eff_lower), 3) if chi_eff_lower is not None else None,
+            'chi_eff_upper': round(float(chi_eff_upper), 3) if chi_eff_upper is not None else None,
+
             'total_mass_source': round(float(total_mass_source), 2) if total_mass_source else None,
+            'total_mass_source_lower': round(float(total_mass_source_lower), 2) if total_mass_source_lower is not None else None,
+            'total_mass_source_upper': round(float(total_mass_source_upper), 2) if total_mass_source_upper is not None else None,
+
             'chirp_mass_source': round(float(chirp_mass_source), 2) if chirp_mass_source else None,
-            'redshift': round(float(redshift), 3) if redshift else None,
+            'chirp_mass_source_lower': round(float(chirp_mass_source_lower), 2) if chirp_mass_source_lower is not None else None,
+            'chirp_mass_source_upper': round(float(chirp_mass_source_upper), 2) if chirp_mass_source_upper is not None else None,
+
+            'redshift': round(float(redshift), 4) if redshift is not None else None,
+            'redshift_lower': round(float(redshift_lower), 4) if redshift_lower is not None else None,
+            'redshift_upper': round(float(redshift_upper), 4) if redshift_upper is not None else None,
+
             'final_mass_source': round(float(final_mass_source), 2) if final_mass_source else None,
-            'final_spin': round(float(final_spin), 3) if final_spin else None,
+            'final_mass_source_lower': round(float(final_mass_source_lower), 2) if final_mass_source_lower is not None else None,
+            'final_mass_source_upper': round(float(final_mass_source_upper), 2) if final_mass_source_upper is not None else None,
+
+            'final_spin': round(float(final_spin), 3) if final_spin is not None else None,
+            'final_spin_lower': round(float(final_spin_lower), 3) if final_spin_lower is not None else None,
+            'final_spin_upper': round(float(final_spin_upper), 3) if final_spin_upper is not None else None,
+
             'far': float(far) if far else None,
-            'p_astro': round(float(p_astro), 3) if p_astro else None,
+            'p_astro': round(float(p_astro), 3) if p_astro is not None else None,
         }
         
         processed_events.append(event_info)
